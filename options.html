@@ -1,22 +1,360 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Magnet Helper Options</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f8f9fa;
+    }
+    
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 24px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    
+    h1 {
+      margin-top: 0;
+      margin-bottom: 24px;
+      color: #2c3e50;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .logo {
+      width: 36px;
+      height: 36px;
+      background-color: #4CAF50;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 18px;
+      margin-right: 12px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    label:not(.sr-only) {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+    
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      box-sizing: border-box;
+    }
+    
+    input[type="text"]:focus, input[type="password"]:focus {
+      outline: none;
+      border-color: #4CAF50;
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+    }
+    
+    .error-message {
+      color: #e74c3c;
+      font-size: 13px;
+      margin-top: 4px;
+      min-height: 16px;
+    }
+    
+    .password-toggle {
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+    }
+    
+    .password-toggle input[type="checkbox"] {
+      width: auto;
+      margin-right: 6px;
+    }
+    
+    .password-toggle label {
+      margin-bottom: 0;
+      font-weight: normal;
+      color: #666;
+      font-size: 14px;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1;
+    }
+    
+    .btn-primary {
+      background-color: #4CAF50;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #45a049;
+    }
+    
+    .btn-secondary {
+      background-color: #f8f9fa;
+      color: #555;
+      border: 1px solid #ddd;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #e9ecef;
+    }
+    
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    button:focus,
+    input:focus {
+      outline: 2px solid #4CAF50;
+      outline-offset: 2px;
+    }
+    
+    .save-message {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 6px;
+      display: none;
+      font-size: 14px;
+    }
+    
+    .save-message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .save-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    
+    .help-text {
+      font-size: 13px;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    
+    .status-good {
+      background-color: #4CAF50;
+    }
+    
+    .status-bad {
+      background-color: #f44336;
+    }
+    
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
+    }
+    
+    .form-legend {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 500;
+      color: #555;
+    }
+  </style>
 </head>
 <body>
-  <h1>Magnet Helper Options</h1>
-  <form id="options-form">
-    <label for="qbittorrent-url">qBittorrent URL:</label>
-    <input type="text" id="qbittorrent-url" name="qbittorrent-url" required>
-    <br>
-    <label for="qbittorrent-user">Username:</label>
-    <input type="text" id="qbittorrent-user" name="qbittorrent-user" required>
-    <br>
-    <label for="qbittorrent-password">Password:</label>
-    <input type="password" id="qbittorrent-password" name="qbittorrent-password" required>
-    <br>
-    <button type="submit">Save</button>
-  </form>
+  <div class="container">
+    <header>
+      <h1>
+        <div class="logo" aria-hidden="true">M</div>
+        Magnet Helper 设置
+      </h1>
+    </header>
+    
+    <main>
+      <form id="options-form" aria-labelledby="form-heading">
+        <h2 id="form-heading" class="sr-only">配置表单</h2>
+        
+        <fieldset class="form-group">
+          <legend class="form-legend">
+            下载客户端类型
+            <span class="status-indicator" id="client-status" aria-hidden="true"></span>
+          </legend>
+          <label for="client-type" class="sr-only">选择下载客户端</label>
+          <select 
+            id="client-type" 
+            name="client-type" 
+            required 
+            aria-describedby="client-help client-error"
+          >
+            <option value="qbittorrent">qBittorrent</option>
+            <option value="transmission">Transmission</option>
+            <option value="utorrent">uTorrent</option>
+          </select>
+          <div id="client-help" class="help-text">选择您使用的下载客户端</div>
+          <div id="client-error" class="error-message" role="alert" aria-live="polite"></div>
+        </fieldset>
+        
+        <fieldset class="form-group">
+          <legend class="form-legend">
+            <span id="server-label">qBittorrent</span> 服务器地址
+            <span class="status-indicator" id="url-status" aria-hidden="true"></span>
+          </legend>
+          <label for="server-url" class="sr-only"><span id="server-label-2">qBittorrent</span> 服务器地址</label>
+          <input 
+            type="text" 
+            id="server-url" 
+            name="server-url" 
+            required 
+            placeholder="http://localhost:8080"
+            aria-describedby="url-help url-error"
+            autocomplete="url"
+          >
+          <div id="url-help" class="help-text"><span id="server-help-text">qBittorrent Web UI</span> 的完整 URL 地址</div>
+          <div id="url-error" class="error-message" role="alert" aria-live="polite"></div>
+        </fieldset>
+        
+        <fieldset class="form-group" id="username-field">
+          <legend class="form-legend">
+            用户名
+            <span class="status-indicator" id="user-status" aria-hidden="true"></span>
+          </legend>
+          <label for="server-user" class="sr-only"><span id="server-label-3">qBittorrent</span> 用户名</label>
+          <input 
+            type="text" 
+            id="server-user" 
+            name="server-user" 
+            required 
+            placeholder="admin"
+            aria-describedby="user-help user-error"
+            autocomplete="username"
+          >
+          <div id="user-help" class="help-text"><span id="server-help-text-2">qBittorrent</span> 登录用户名</div>
+          <div id="user-error" class="error-message" role="alert" aria-live="polite"></div>
+        </fieldset>
+        
+        <fieldset class="form-group" id="password-field">
+          <legend class="form-legend">
+            密码
+            <span class="status-indicator" id="password-status" aria-hidden="true"></span>
+          </legend>
+          <label for="server-password" class="sr-only"><span id="server-label-4">qBittorrent</span> 密码</label>
+          <input 
+            type="password" 
+            id="server-password" 
+            name="server-password" 
+            required 
+            placeholder="••••••••"
+            aria-describedby="password-help password-error"
+            autocomplete="current-password"
+          >
+          <div id="password-help" class="help-text"><span id="server-help-text-3">qBittorrent</span> 登录密码</div>
+          <div id="password-error" class="error-message" role="alert" aria-live="polite"></div>
+          
+          <div class="password-toggle">
+            <input type="checkbox" id="show-password">
+            <label for="show-password">显示密码</label>
+          </div>
+        </fieldset>
+        
+        <div class="button-group" role="group" aria-label="表单操作">
+          <button type="submit" class="btn-primary" aria-describedby="save-message">保存设置</button>
+          <button type="button" id="test-connection" class="btn-secondary">测试连接</button>
+        </div>
+        
+        <div id="save-message" class="save-message" role="status" aria-live="polite"></div>
+      </form>
+    </main>
+  </div>
+  <style>
+    .error-message {
+      color: red;
+      font-size: 12px;
+      margin-top: 5px;
+      min-height: 16px;
+    }
+    .save-message {
+      margin-top: 10px;
+      padding: 5px;
+      border-radius: 3px;
+      display: none;
+    }
+    .save-message.success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .save-message.error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .password-toggle {
+      margin-top: 5px;
+      font-size: 14px;
+    }
+    .password-toggle input {
+      width: auto;
+      margin-right: 5px;
+    }
+    button {
+      margin-right: 10px;
+      padding: 5px 10px;
+    }
+    input {
+      margin-bottom: 5px;
+      padding: 5px;
+      width: 300px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+  </style>
   <script src="options.js"></script>
 </body>
 </html>
