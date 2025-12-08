@@ -299,8 +299,7 @@ async function testConnection() {
       if (tokenResponse.ok) {
         const tokenText = await tokenResponse.text();
         const tokenMatch = tokenText.match(/<div[^>]*>([^<]+)<\/div>/);
-        const _token = tokenMatch ? tokenMatch[1] : '';
-        
+                
         // Use token to get version
         const versionResponse = await fetch(`${serverUrl}${config.versionPath}`, {
           headers: {

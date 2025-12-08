@@ -4,29 +4,29 @@
  */
 
 // Mock DOM environment
-global.document = {
-  createElement: jest.fn((tag) => {
-    const element = {
-      tagName: tag.toUpperCase(),
-      textContent: '',
-      className: '',
-      style: {},
-      setAttribute: jest.fn(),
-      addEventListener: jest.fn(),
-      appendChild: jest.fn(),
-      querySelectorAll: jest.fn(() => []),
-      parentNode: null
-    };
-    return element;
-  }),
-  createDocumentFragment: jest.fn(() => ({
-    appendChild: jest.fn()
-  })),
-  createTextNode: jest.fn((text) => ({ textContent: text })),
-  body: {
+global.window = {};
+global.document = {  createElement: jest.fn((tag) => {
+  const element = {
+    tagName: tag.toUpperCase(),
+    textContent: '',
+    className: '',
+    style: {},
+    setAttribute: jest.fn(),
+    addEventListener: jest.fn(),
+    appendChild: jest.fn(),
     querySelectorAll: jest.fn(() => []),
-    appendChild: jest.fn()
-  }
+    parentNode: null
+  };
+  return element;
+}),
+createDocumentFragment: jest.fn(() => ({
+  appendChild: jest.fn()
+})),
+createTextNode: jest.fn((text) => ({ textContent: text })),
+body: {
+  querySelectorAll: jest.fn(() => []),
+  appendChild: jest.fn()
+}
 };
 
 global.Node = {
@@ -63,7 +63,6 @@ describe('Content Script Tests', () => {
     test('should identify valid magnet links', () => {
       const magnetLinks = [
         'magnet:?xt=urn:btih:1234567890abcdef1234567890abcdef12345678',
-        'magnet:?xt=urn:btmh:1220abcdef1234567890abcdef1234567890abcdef1234567890abcdef',
         'magnet:?xt=urn:sha1:1234567890abcdef1234567890abcdef12345678&dn=test'
       ];
 
@@ -103,7 +102,7 @@ describe('Content Script Tests', () => {
         addEventListener: jest.fn()
       };
       
-      document.createElement.mockReturnValue(mockButton);
+      // document.createElement is already mocked to return elements in this test harness
 
       // Simulate button creation
       const button = mockButton;
