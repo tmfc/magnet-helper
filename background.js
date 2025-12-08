@@ -11,9 +11,7 @@
 // background.js
 
 // Constants for better maintainability
-const NOTIFICATION_TIMEOUT = 3000;
 const REQUEST_TIMEOUT = 10000;
-const MAX_HISTORY_ITEMS = 20;
 
 // Error logging levels
 const LOG_LEVELS = {
@@ -29,6 +27,8 @@ const LOG_LEVELS = {
  * @param {string} message - Log message
  * @param {Object} context - Additional context information
  */
+const LOG_ENABLED = true; // toggle to enable/disable console logging in development
+
 function log(level, message, context = {}) {
   const timestamp = new Date().toISOString();
   const logEntry = {
@@ -37,9 +37,16 @@ function log(level, message, context = {}) {
     message,
     context
   };
-  
-  console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, context);
-  
+
+  if (LOG_ENABLED) {
+    try {
+      console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, context);
+    } catch (e) {
+      // fallback
+      console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+    }
+  }
+
   // Store error logs for debugging (optional)
   if (level === LOG_LEVELS.ERROR) {
     chrome.storage.local.get(['errorLogs'], (result) => {
