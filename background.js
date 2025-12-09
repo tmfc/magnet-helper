@@ -123,21 +123,36 @@ function addToHistory(magnetUrl, success) {
       chrome.storage.sync.set({ downloadHistory: history });
     };
 
-    if (window.crypto && window.crypto.subtle && typeof window.crypto.subtle.digest === 'function') {
+    const cryptoObj = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+    const encodeFallback = () => {
+      try {
+        if (typeof btoa === 'function') {
+          return btoa(magnetUrl);
+        }
+        if (typeof Buffer !== 'undefined') {
+          return Buffer.from(magnetUrl, 'utf-8').toString('base64');
+        }
+      } catch (e) {
+        // fall through to final fallback below
+      }
+      return magnetUrl.slice(0, 16);
+    };
+
+    if (cryptoObj && cryptoObj.subtle && typeof cryptoObj.subtle.digest === 'function') {
       try {
         const enc = new TextEncoder();
-        window.crypto.subtle.digest('SHA-1', enc.encode(magnetUrl)).then(hashBuf => {
+        cryptoObj.subtle.digest('SHA-1', enc.encode(magnetUrl)).then(hashBuf => {
           const hashArray = Array.from(new Uint8Array(hashBuf));
           const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
           addItem(hashHex.substring(0, 16));
         }).catch(() => {
-          addItem(btoa(magnetUrl).substring(0, 16));
+          addItem(encodeFallback().substring(0, 16));
         });
       } catch (e) {
-        addItem(btoa(magnetUrl).substring(0, 16));
+        addItem(encodeFallback().substring(0, 16));
       }
     } else {
-      addItem(btoa(magnetUrl).substring(0, 16));
+      addItem(encodeFallback().substring(0, 16));
     }
   });
 }
