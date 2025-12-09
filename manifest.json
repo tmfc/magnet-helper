@@ -12,15 +12,6 @@
   "host_permissions": [
     "<all_urls>"
   ],
-  "permissions_reasons": {
-    "storage": "保存用户配置和下载历史记录",
-    "activeTab": "在当前标签页中检测和处理磁力链接",
-    "scripting": "注入内容脚本以添加下载按钮",
-    "notifications": "显示下载状态和错误信息"
-  },
-  "host_permissions_reasons": {
-    "<all_urls>": "在任何网站上检测磁力链接并添加下载按钮"
-  },
   "background": {
     "service_worker": "background.js"
   },
