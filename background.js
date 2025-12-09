@@ -11,9 +11,7 @@
 // background.js
 
 // Constants for better maintainability
-const NOTIFICATION_TIMEOUT = 3000;
 const REQUEST_TIMEOUT = 10000;
-const MAX_HISTORY_ITEMS = 20;
 
 // Error logging levels
 const LOG_LEVELS = {
@@ -29,6 +27,8 @@ const LOG_LEVELS = {
  * @param {string} message - Log message
  * @param {Object} context - Additional context information
  */
+const LOG_ENABLED = true; // toggle to enable/disable console logging in development
+
 function log(level, message, context = {}) {
   const timestamp = new Date().toISOString();
   const logEntry = {
@@ -37,9 +37,16 @@ function log(level, message, context = {}) {
     message,
     context
   };
-  
-  console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, context);
-  
+
+  if (LOG_ENABLED) {
+    try {
+      console[level](`[${timestamp}] [${level.toUpperCase()}] ${message}`, context);
+    } catch (e) {
+      // fallback
+      console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`);
+    }
+  }
+
   // Store error logs for debugging (optional)
   if (level === LOG_LEVELS.ERROR) {
     chrome.storage.local.get(['errorLogs'], (result) => {
@@ -88,36 +95,65 @@ function sanitizeForLogging(data) {
  */
 function addToHistory(magnetUrl, success) {
   if (!success) return;
-  
+
   chrome.storage.sync.get(['downloadHistory'], (result) => {
     let history = result.downloadHistory || [];
-    
-    // Extract name from magnet URL if possible
+
+    // Extract dn parameter from magnet link (magnet:?xt=...&dn=NAME&...)
     let name = '未知文件';
     try {
-      const url = new URL(magnetUrl);
-      const params = new URLSearchParams(url.search);
-      name = params.get('dn') || '未知文件';
-      // Decode URI component and limit length
-      name = decodeURIComponent(name);
-      if (name.length > 30) {
-        name = name.substring(0, 27) + '...';
+      const m = magnetUrl.match(/[?&]dn=([^&]+)/i);
+      if (m && m[1]) {
+        name = decodeURIComponent(m[1]);
+        if (name.length > 30) name = name.substring(0, 27) + '...';
       }
     } catch (e) {
-      // Keep default name if parsing fails
+      // keep default name
     }
-    
-    // Add new item to history (without storing the full magnet URL for privacy)
-    history.unshift({
-      name: name,
-      urlHash: btoa(magnetUrl).substring(0, 16) + '...', // Store only a hash identifier
-      timestamp: Date.now()
-    });
-    
-    // Keep only last 20 items
-    history = history.slice(0, 20);
-    
-    chrome.storage.sync.set({ downloadHistory: history });
+
+    // Derive an identifier from the magnet (not reversible btoa alone)
+    // Use a simple SHA-1 via SubtleCrypto if available, fallback to truncated btoa
+    const addItem = (id) => {
+      history.unshift({
+        name,
+        id,
+        timestamp: Date.now()
+      });
+      history = history.slice(0, 20);
+      chrome.storage.sync.set({ downloadHistory: history });
+    };
+
+    const cryptoObj = typeof globalThis !== 'undefined' ? globalThis.crypto : null;
+    const encodeFallback = () => {
+      try {
+        if (typeof btoa === 'function') {
+          return btoa(magnetUrl);
+        }
+        if (typeof Buffer !== 'undefined') {
+          return Buffer.from(magnetUrl, 'utf-8').toString('base64');
+        }
+      } catch (e) {
+        // fall through to final fallback below
+      }
+      return magnetUrl.slice(0, 16);
+    };
+
+    if (cryptoObj && cryptoObj.subtle && typeof cryptoObj.subtle.digest === 'function') {
+      try {
+        const enc = new TextEncoder();
+        cryptoObj.subtle.digest('SHA-1', enc.encode(magnetUrl)).then(hashBuf => {
+          const hashArray = Array.from(new Uint8Array(hashBuf));
+          const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          addItem(hashHex.substring(0, 16));
+        }).catch(() => {
+          addItem(encodeFallback().substring(0, 16));
+        });
+      } catch (e) {
+        addItem(encodeFallback().substring(0, 16));
+      }
+    } else {
+      addItem(encodeFallback().substring(0, 16));
+    }
   });
 }
 
@@ -391,8 +427,11 @@ function getNetworkErrorMessage(error) {
 }
 
 // Message listener for handling requests from content scripts
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.type === 'download') {
+// Message listener for handling requests from content scripts
+// We don't need sendResponse or sender, allow unused args by prefixing with _ if required
+chrome.runtime.onMessage.addListener((request) => {
+  if (request && request.type === 'download') {
     handleDownload(request.url);
   }
+  // no sendResponse used
 });

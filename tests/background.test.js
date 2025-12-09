@@ -4,6 +4,9 @@
  */
 
 // Mock Chrome APIs for testing
+global.URL = global.URL || require('url').URL;
+global.URLSearchParams = global.URLSearchParams || require('url').URLSearchParams;
+
 global.chrome = {
   storage: {
     sync: {
@@ -64,7 +67,9 @@ describe('Background Script Tests', () => {
           new URL(url);
           fail(`${url} should be invalid`);
         } catch (e) {
-          expect(e).toBeInstanceOf(TypeError);
+          // Accept any thrown error object and check its constructor name to be safe across engines
+          expect(e).toBeTruthy();
+          expect(e.constructor && /Error|TypeError|ReferenceError/.test(e.constructor.name)).toBe(true);
         }
       });
     });

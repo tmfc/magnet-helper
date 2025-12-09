@@ -1,0 +1,20 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true,
+    "jest": true,
+    "node": true
+  },
+  "extends": "eslint:recommended",
+  "globals": {
+    "global": "readonly",
+    "module": "readonly",
+    "fail": "readonly"
+  },
+  "rules": {
+    "no-console": "off",
+    "indent": ["error", 2],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-cond-assign": ["error", "always"]
+  }
+}

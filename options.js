@@ -299,8 +299,7 @@ async function testConnection() {
       if (tokenResponse.ok) {
         const tokenText = await tokenResponse.text();
         const tokenMatch = tokenText.match(/<div[^>]*>([^<]+)<\/div>/);
-        const token = tokenMatch ? tokenMatch[1] : '';
-        
+                
         // Use token to get version
         const versionResponse = await fetch(`${serverUrl}${config.versionPath}`, {
           headers: {
@@ -328,20 +327,20 @@ async function testConnection() {
     } else {
       let errorMessage = '连接失败';
       switch(response?.status) {
-        case 401:
-          errorMessage = '认证失败：用户名或密码错误';
-          break;
-        case 403:
-          errorMessage = '访问被拒绝：请检查权限设置';
-          break;
-        case 404:
-          errorMessage = 'API 不存在：请检查客户端版本和 URL';
-          break;
-        case 409:
-          errorMessage = '冲突：请检查客户端配置';
-          break;
-        default:
-          errorMessage = `连接失败 (HTTP ${response?.status || '未知'})`;
+      case 401:
+        errorMessage = '认证失败：用户名或密码错误';
+        break;
+      case 403:
+        errorMessage = '访问被拒绝：请检查权限设置';
+        break;
+      case 404:
+        errorMessage = 'API 不存在：请检查客户端版本和 URL';
+        break;
+      case 409:
+        errorMessage = '冲突：请检查客户端配置';
+        break;
+      default:
+        errorMessage = `连接失败 (HTTP ${response?.status || '未知'})`;
       }
       showSaveMessage(errorMessage, false);
     }

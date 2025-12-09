@@ -29,22 +29,23 @@ function createDownloadButton(magnetUrl) {
   button.style.borderRadius = '3px';
   button.style.cursor = 'pointer';
   button.style.verticalAlign = 'middle';
-  
+
   // Click handler with loading state
   button.addEventListener('click', () => {
     button.disabled = true;
     button.textContent = '发送中...';
     button.setAttribute('aria-label', '正在发送磁力链接到 qBittorrent...');
-    chrome.runtime.sendMessage({ type: 'download', url: magnetUrl }, (response) => {
-      // Re-enable button after a delay to prevent double-clicks
-      setTimeout(() => {
-        button.disabled = false;
-        button.textContent = '↓ qBittorrent';
-        button.setAttribute('aria-label', '将磁力链接发送到 qBittorrent');
-      }, 2000);
-    });
+    // No need to handle response callback; keep simple and avoid unused param
+    chrome.runtime.sendMessage({ type: 'download', url: magnetUrl });
+
+    // Re-enable button after a delay to prevent double-clicks
+    setTimeout(() => {
+      button.disabled = false;
+      button.textContent = '↓ qBittorrent';
+      button.setAttribute('aria-label', '将磁力链接发送到 qBittorrent');
+    }, 2000);
   });
-  
+
   // Keyboard support for accessibility
   button.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -52,7 +53,7 @@ function createDownloadButton(magnetUrl) {
       button.click();
     }
   });
-  
+
   return button;
 }
 
@@ -60,11 +61,23 @@ function createDownloadButton(magnetUrl) {
  * Checks if the extension is currently enabled
  * @param {function(boolean): void} callback - Callback with enabled status
  */
+// Cache extensionEnabled in-memory to avoid frequent storage reads
+let _extensionEnabledCache = true;
 function isExtensionEnabled(callback) {
+  // If we already checked storage recently, use cache
+  if (typeof callback !== 'function') return;
   chrome.storage.sync.get(['extensionEnabled'], (result) => {
-    callback(result.extensionEnabled !== false); // Default to enabled
+    _extensionEnabledCache = result.extensionEnabled !== false;
+    callback(_extensionEnabledCache);
   });
 }
+
+// Update cache when storage changes
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync' && changes.extensionEnabled) {
+    _extensionEnabledCache = changes.extensionEnabled.newValue !== false;
+  }
+});
 
 /**
  * Checks if a download button already exists for the given magnet URL
@@ -103,7 +116,7 @@ let node;
 const nodesToProcess = [];
 
 // First, collect all text nodes to avoid issues with a live NodeList
-while(node = walker.nextNode()) {
+while ((node = walker.nextNode())) {
   nodesToProcess.push(node);
 }
 
@@ -111,11 +124,11 @@ isExtensionEnabled((enabled) => {
   if (!enabled) return;
   
   nodesToProcess.forEach(textNode => {
-    if (textNode.nodeValue.match(magnetRegex)) {
+    if (textNode.nodeValue && textNode.nodeValue.match(magnetRegex)) {
       const parent = textNode.parentNode;
       // Don't process nodes that are children of <a>, <script>, <style>, <input>, <textarea> tags
       if (['A', 'SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA', 'NOSCRIPT'].includes(parent.nodeName)) {
-          return;
+        return;
       }
       
       const fragments = textNode.nodeValue.split(magnetRegex);
@@ -167,7 +180,7 @@ function processNode(node) {
         const parent = node.parentNode;
         // Don't process nodes that are children of certain tags
         if (['A', 'SCRIPT', 'STYLE', 'INPUT', 'TEXTAREA', 'NOSCRIPT'].includes(parent.nodeName)) {
-            return;
+          return;
         }
         
         const fragments = node.nodeValue.split(magnetRegex);
