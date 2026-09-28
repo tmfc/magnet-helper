@@ -32,12 +32,15 @@ function createDownloadButton(magnetUrl) {
 
   // Click handler with loading state
   button.addEventListener('click', () => {
-    const requestId = Date.now().toString() + '-' + Math.random().toString(36).slice(2);
-    button.setAttribute('data-request-id', requestId);
     button.disabled = true;
     button.textContent = '发送中...';
     button.setAttribute('aria-label', '正在发送磁力链接到 qBittorrent...');
-    chrome.runtime.sendMessage({ type: 'download', url: magnetUrl, requestId });
+    chrome.runtime.sendMessage({ type: 'download', url: magnetUrl }, (response) => {
+      button.disabled = false;
+      const success = !chrome.runtime.lastError && response?.success;
+      button.textContent = success ? '✓ 成功' : '发送失败';
+      button.setAttribute('aria-label', success ? '已成功发送到 qBittorrent' : '发送失败，点击重试');
+    });
   });
 
   // Keyboard support for accessibility
@@ -50,23 +53,6 @@ function createDownloadButton(magnetUrl) {
 
   return button;
 }
-
-// Listen for download result messages from background to update button state
-chrome.runtime.onMessage.addListener((message) => {
-  if (!message || message.type !== 'downloadResult' || !message.requestId) return;
-  const selector = `.magnet-helper-download-btn[data-request-id="${message.requestId}"]`;
-  const button = document.querySelector(selector);
-  if (!button) return;
-
-  button.disabled = false;
-  if (message.success) {
-    button.textContent = '✅ qBittorrent';
-    button.setAttribute('aria-label', '已发送到 qBittorrent');
-  } else {
-    button.textContent = '↓ qBittorrent';
-    button.setAttribute('aria-label', '发送失败，点击重试');
-  }
-});
 
 /**
  * Checks if the extension is currently enabled

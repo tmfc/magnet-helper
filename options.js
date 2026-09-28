@@ -250,11 +250,13 @@ async function testConnection() {
 
     let response;
     let version = '';
+    let authenticated = true;
 
     if (clientType === 'qbittorrent') {
       // qBittorrent authentication
       response = await fetch(`${serverUrl}${config.apiPath}${config.loginPath}`, {
         method: 'POST',
+        credentials: 'include',
         body: new URLSearchParams({
           username: serverUser,
           password: serverPassword
@@ -262,14 +264,16 @@ async function testConnection() {
         signal: controller.signal
       });
 
-      if (response.ok) {
+      authenticated = response.ok && (response.status === 204 || (await response.text()).trim() === 'Ok.');
+      if (authenticated) {
         // Get version info
-        const versionResponse = await fetch(`${serverUrl}${config.apiPath}${config.versionPath}`, {
+        response = await fetch(`${serverUrl}${config.apiPath}${config.versionPath}`, {
+          credentials: 'include',
           signal: controller.signal
         });
         
-        if (versionResponse.ok) {
-          version = await versionResponse.text();
+        if (response.ok) {
+          version = await response.text();
         }
       }
     } else if (clientType === 'transmission') {
@@ -318,7 +322,7 @@ async function testConnection() {
 
     clearTimeout(timeoutId);
 
-    if (response && response.ok) {
+    if (response && response.ok && authenticated) {
       if (version) {
         showSaveMessage(`连接成功！${config.name} 版本: ${version}`, true);
       } else {
@@ -326,7 +330,7 @@ async function testConnection() {
       }
     } else {
       let errorMessage = '连接失败';
-      switch(response?.status) {
+      switch(authenticated ? response?.status : 401) {
       case 401:
         errorMessage = '认证失败：用户名或密码错误';
         break;

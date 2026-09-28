@@ -207,11 +207,10 @@ const clientConfigs = {
  * Main handler for processing magnet link download requests
  * Flow: Validate config -> Login to client -> Add torrent -> Update history
  * @param {string} magnetUrl - The magnet URL to download
- * @param {string} [requestIdFromContent] - Optional request id provided by content script
- * @param {number} [tabId] - Optional tab id to send result back to the correct page
+ * @param {function({success: boolean}): void} sendResponse - Reports the result to the content script
  */
-async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
-  const requestId = requestIdFromContent || Date.now().toString();
+async function handleDownload(magnetUrl, sendResponse) {
+  const requestId = Date.now().toString();
   
   log(LOG_LEVELS.INFO, 'Processing magnet download request', {
     requestId,
@@ -224,12 +223,14 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
       if (settings.extensionEnabled === false) {
         log(LOG_LEVELS.WARN, 'Extension disabled, ignoring request', { requestId });
         showNotification('扩展已禁用', '请在弹出窗口中启用扩展', true);
+        sendResponse({ success: false });
         return;
       }
       
       if (!settings.clientType || !settings.serverUrl) {
         log(LOG_LEVELS.ERROR, 'Client not configured', { requestId });
         showNotification('配置错误', '请先在选项页面配置下载客户端信息', true);
+        sendResponse({ success: false });
         return;
       }
 
@@ -245,6 +246,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
           error: certValidation.error 
         });
         showNotification('URL 错误', certValidation.error, true);
+        sendResponse({ success: false });
         return;
       }
 
@@ -268,6 +270,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
           // qBittorrent flow: login then add
           const loginResponse = await fetch(`${settings.serverUrl}${config.apiPath}${config.loginPath}`, {
             method: 'POST',
+            credentials: 'include',
             body: new URLSearchParams({
               username: settings.serverUser,
               password: settings.serverPassword
@@ -277,7 +280,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
 
           clearTimeout(timeoutId);
           
-          if (loginResponse.ok) {
+          if (loginResponse.ok && (loginResponse.status === 204 || (await loginResponse.text()).trim() === 'Ok.')) {
             const formData = new FormData();
             formData.append('urls', magnetUrl);
             
@@ -286,6 +289,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
             
             addResponse = await fetch(`${settings.serverUrl}${config.apiPath}${config.addPath}`, {
               method: 'POST',
+              credentials: 'include',
               body: formData,
               signal: addController.signal
             });
@@ -356,12 +360,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
           log(LOG_LEVELS.INFO, 'Torrent added successfully', { requestId });
           showNotification('下载成功', `磁力链接已添加到 ${config.name}`);
           addToHistory(magnetUrl, true);
-          const resultMessage = { type: 'downloadResult', requestId, success: true };
-          if (typeof tabId === 'number') {
-            chrome.tabs.sendMessage(tabId, resultMessage);
-          } else {
-            chrome.runtime.sendMessage(resultMessage);
-          }
+          sendResponse({ success: true });
         } else {
           const errorMsg = getErrorMessage(addResponse?.status, clientType);
           log(LOG_LEVELS.ERROR, 'Failed to add torrent', { 
@@ -371,12 +370,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
             errorMsg 
           });
           showNotification('下载失败', errorMsg, true);
-          const resultMessage = { type: 'downloadResult', requestId, success: false };
-          if (typeof tabId === 'number') {
-            chrome.tabs.sendMessage(tabId, resultMessage);
-          } else {
-            chrome.runtime.sendMessage(resultMessage);
-          }
+          sendResponse({ success: false });
         }
       } catch (error) {
         log(LOG_LEVELS.ERROR, 'Request failed', { 
@@ -387,12 +381,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
         
         const errorMessage = getNetworkErrorMessage(error);
         showNotification('连接错误', errorMessage, true);
-        const resultMessage = { type: 'downloadResult', requestId, success: false };
-        if (typeof tabId === 'number') {
-          chrome.tabs.sendMessage(tabId, resultMessage);
-        } else {
-          chrome.runtime.sendMessage(resultMessage);
-        }
+        sendResponse({ success: false });
       }
     } catch (error) {
       log(LOG_LEVELS.ERROR, 'Unexpected error in handleDownload', { 
@@ -401,12 +390,7 @@ async function handleDownload(magnetUrl, requestIdFromContent, tabId) {
         stack: error.stack 
       });
       showNotification('系统错误', '发生未知错误，请重试', true);
-      const resultMessage = { type: 'downloadResult', requestId, success: false };
-      if (typeof tabId === 'number') {
-        chrome.tabs.sendMessage(tabId, resultMessage);
-      } else {
-        chrome.runtime.sendMessage(resultMessage);
-      }
+      sendResponse({ success: false });
     }
   });
 }
@@ -453,11 +437,9 @@ function getNetworkErrorMessage(error) {
 }
 
 // Message listener for handling requests from content scripts
-// We use sender.tab.id when available so that responses go back to the correct tab.
-chrome.runtime.onMessage.addListener((request, sender) => {
+chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
   if (request && request.type === 'download') {
-    const tabId = sender && sender.tab ? sender.tab.id : undefined;
-    handleDownload(request.url, request.requestId, tabId);
+    handleDownload(request.url, sendResponse);
+    return true;
   }
-  // no sendResponse used
 });
