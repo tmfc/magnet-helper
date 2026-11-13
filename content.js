@@ -114,9 +114,9 @@ isExtensionEnabled((enabled) => {
   
   const magnetLinks = document.querySelectorAll('a[href^="magnet:"]');
   magnetLinks.forEach(link => {
-    // In code blocks like .blockcode we rely on the plain-text handler
+    // In code blocks like .blockcode / .discuz-code we rely on the plain-text handler
     // to avoid duplicate buttons next to the same visual magnet line.
-    if (link.closest('.blockcode')) {
+    if (link.closest('.blockcode, .discuz-code')) {
       return;
     }
     // Check if button already exists
@@ -139,8 +139,9 @@ function shouldSkipTextNode(textNode) {
   if (!parentElement) return false;
 
   // Skip common code / preformatted / quoted containers
-  // NOTE: .blockcode is intentionally NOT skipped so that forum code blocks with magnet links can be processed.
-  if (parentElement.closest('pre, code, kbd, samp, textarea, .code, .syntaxhighlighter, .highlight, .prettyprint')) {
+  // NOTE: .blockcode and .discuz-code are intentionally NOT skipped so that forum code blocks with magnet links can be processed.
+  const codeAncestor = parentElement.closest('pre, code, kbd, samp, textarea, .code, .syntaxhighlighter, .highlight, .prettyprint');
+  if (codeAncestor && !codeAncestor.closest('.blockcode, .discuz-code')) {
     return true;
   }
 
@@ -199,8 +200,8 @@ isExtensionEnabled((enabled) => {
           span.style.borderRadius = '2px';
           newContent.appendChild(span);
           
-          // Use the closest .blockcode as a container if present to avoid duplicates within a code block
-          const container = parent.closest('.blockcode') || parent;
+          // Use the closest code block as a container if present to avoid duplicates within a code block
+          const container = parent.closest('.blockcode, .discuz-code') || parent;
           // Check if button already exists for this magnet URL
           if (!buttonExists(textPart, container)) {
             const button = createDownloadButton(textPart);
@@ -265,8 +266,8 @@ function processNode(node) {
               span.style.borderRadius = '2px';
               newContent.appendChild(span);
               
-              // Use the closest .blockcode as a container if present to avoid duplicates within a code block
-              const container = parent.closest('.blockcode') || parent;
+              // Use the closest code block as a container if present to avoid duplicates within a code block
+              const container = parent.closest('.blockcode, .discuz-code') || parent;
               // Check if button already exists for this magnet URL
               if (!buttonExists(textPart, container)) {
                 const button = createDownloadButton(textPart);
